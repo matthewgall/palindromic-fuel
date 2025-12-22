@@ -18,7 +18,7 @@ After one too many attempts at the perfect fill-up, I thought "there has to be a
 
 ```bash
 # Download the binary or build it yourself
-go build -o palindromic-fuel palindromic-fuel.go
+go build -o palindromic-fuel main.go
 ./palindromic-fuel -price=128.9 -max=100
 ```
 
