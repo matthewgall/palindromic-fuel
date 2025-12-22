@@ -457,6 +457,16 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
             background-clip: text;
         }
 
+        .fuel-icon {
+            background: none;
+            -webkit-background-clip: initial;
+            -webkit-text-fill-color: #fbbf24;
+            background-clip: initial;
+            color: #fbbf24;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
@@ -711,7 +721,7 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 <body>
     <div class="wrapper">
         <div class="header">
-            <h1>⛽ Palindromic Fuel Calculator</h1>
+            <h1><span class="fuel-icon">⛽</span> Palindromic Fuel Calculator</h1>
             <p>Discover fuel costs that read the same forwards and backwards!</p>
         </div>
 
