@@ -417,68 +417,385 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 <head>
     <title>Palindromic Fuel Calculator</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        input, button { padding: 8px; margin: 5px; font-size: 16px; }
-        button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .result { background: white; padding: 15px; margin: 10px 0; border-radius: 4px; border-left: 4px solid #28a745; }
-        .error { color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 4px; }
-        .api-info { background: #e9ecef; padding: 15px; border-radius: 4px; margin-top: 20px; }
-        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #4f46e5;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            flex: 1;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .input-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #0ea5e9;
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #0ea5e9 0%, #06b6d4 100%);
+        }
+
+        .result-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.2);
+        }
+
+        .result-main {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .result-meta {
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .palindrome-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .error-card {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 2px solid #dc2626;
+            color: #991b1b;
+            padding: 16px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .api-section {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .api-section h3 {
+            color: #1f2937;
+            margin-bottom: 15px;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid #374151;
+        }
+
+        .api-link {
+            display: inline-block;
+            background: #059669;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .api-link:hover {
+            background: #047857;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .stats-item {
+            text-align: center;
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4f46e5;
+        }
+
+        .stats-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .wrapper {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2.2rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+
+        .emoji {
+            font-size: 1.2em;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
-    <h1>🚗✨ Palindromic Fuel Calculator</h1>
-    <p>Find fuel costs that read the same forwards and backwards!</p>
+    <div class="wrapper">
+        <div class="header">
+            <h1><span class="emoji">🚗</span> Palindromic Fuel Calculator <span class="emoji">✨</span></h1>
+            <p>Discover fuel costs that read the same forwards and backwards!</p>
+        </div>
 
-    <div class="container">
-        <h2>Calculate</h2>
-        <form method="POST">
-            <input type="number" name="price" step="0.01" placeholder="Price per litre (e.g., 128.9)" required>
-            <input type="number" name="max" placeholder="Max litres (e.g., 100)" required>
-            <button type="submit">Calculate</button>
-        </form>
-    </div>
+        <div class="card">
+            <h2><span class="emoji">🔢</span> Calculate Palindromes</h2>
+            <form method="POST">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="price">Price per Litre (pence)</label>
+                        <input type="number" id="price" name="price" step="0.01" placeholder="128.9" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="max">Maximum Litres</label>
+                        <input type="number" id="max" name="max" placeholder="100" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn">🚀 Calculate Palindromes</button>
+            </form>
+        </div>
 
-    {{if .Error}}
-    <div class="error">{{.Error}}</div>
-    {{end}}
-
-    {{if .Results}}
-    <div class="container">
-        <h2>Results</h2>
-        <p>Fuel Price: {{.Request.PricePerLitre}}p/litre</p>
-        <p>Found {{len .Results}} palindromic cost(s):</p>
-
-        {{range .Results}}
-        <div class="result">
-            <strong>{{.FormattedLitres}} litres = £{{.CostPounds}}</strong>
-            <br><small>
-                {{if .LitresIsPalindrome}}
-                    {{if eq .Type "palindromic_decimal"}}(palindromic decimal litres){{else}}(palindromic whole litres){{end}}
-                {{else}}
-                    (whole number litres)
-                {{end}}
-            </small>
+        {{if .Error}}
+        <div class="error-card">
+            <strong>❌ Error:</strong> {{.Error}}
         </div>
         {{end}}
-    </div>
-    {{end}}
 
-    <div class="api-info">
-        <h3>API Usage</h3>
-        <p>This calculator also provides a REST API:</p>
+        {{if .Results}}
+        <div class="card">
+            <div class="stats">
+                <div class="stats-item">
+                    <div class="stats-number">{{len .Results}}</div>
+                    <div class="stats-label">Palindromes Found</div>
+                </div>
+                <div class="stats-item">
+                    <div class="stats-number">{{.Request.PricePerLitre}}</div>
+                    <div class="stats-label">Price (p/litre)</div>
+                </div>
+                <div class="stats-item">
+                    <div class="stats-number">{{.Request.MaxLitres}}</div>
+                    <div class="stats-label">Max Litres</div>
+                </div>
+            </div>
 
-        <h4>GET Request:</h4>
-        <pre>curl "http://localhost:8080/api/calculate?price=128.9&max=100"</pre>
+            <h2><span class="emoji">🎯</span> Results</h2>
 
-        <h4>POST Request:</h4>
-        <pre>curl -X POST http://localhost:8080/api/calculate \
+            <div class="results-grid">
+                {{range .Results}}
+                <div class="result-card">
+                    <div class="result-main">
+                        {{.FormattedLitres}}L = £{{.CostPounds}}
+                        {{if .LitresIsPalindrome}}
+                            <span class="palindrome-badge">🎭 PALINDROME</span>
+                        {{end}}
+                    </div>
+                    <div class="result-meta">
+                        {{if .LitresIsPalindrome}}
+                            {{if eq .Type "palindromic_decimal"}}
+                                <span class="emoji">🔢</span> Palindromic Decimal Litres
+                            {{else}}
+                                <span class="emoji">🔢</span> Palindromic Whole Litres
+                            {{end}}
+                        {{else}}
+                            <span class="emoji">💯</span> Whole Number Litres
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+
+        <div class="card api-section">
+            <h2><span class="emoji">🔌</span> API Access</h2>
+            <p>This calculator provides a REST API for programmatic access:</p>
+
+            <h3>GET Request</h3>
+            <div class="code-block">curl "http://localhost:8080/api/calculate?price=128.9&max=100"</div>
+
+            <h3>POST Request</h3>
+            <div class="code-block">curl -X POST http://localhost:8080/api/calculate \
   -H "Content-Type: application/json" \
-  -d '{"pricePerLitre": 128.9, "maxLitres": 100}'</pre>
+  -d '{"pricePerLitre": 128.9, "maxLitres": 100}'</div>
 
-        <p><a href="/api/calculate?price=128.9&max=50" target="_blank">Try the API</a></p>
+            <a href="/api/calculate?price=128.9&max=50" target="_blank" class="api-link">🔗 Try the API</a>
+        </div>
     </div>
 </body>
 </html>`
