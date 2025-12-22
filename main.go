@@ -428,9 +428,9 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f8fafc;
             min-height: 100vh;
-            color: #333;
+            color: #334155;
             line-height: 1.6;
         }
 
@@ -443,28 +443,25 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
         .header {
             text-align: center;
             margin-bottom: 40px;
-            color: white;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 20px auto 40px;
+            max-width: 800px;
         }
 
         .header h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1e293b;
+            text-align: center;
         }
 
         .fuel-icon {
-            background: none;
-            -webkit-background-clip: initial;
-            -webkit-text-fill-color: #fbbf24;
-            background-clip: initial;
-            color: #fbbf24;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            color: #f59e0b;
+            margin-right: 8px;
         }
 
         .header p {
@@ -475,18 +472,16 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 
         .card {
             background: white;
-            border-radius: 20px;
-            padding: 30px;
+            border-radius: 12px;
+            padding: 25px;
             margin: 20px 0;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+            transition: box-shadow 0.2s ease;
         }
 
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
         }
 
         .card h2 {
@@ -540,25 +535,20 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
         }
 
         .btn {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            background: #3b82f6;
             color: white;
             border: none;
-            padding: 14px 28px;
-            border-radius: 12px;
+            padding: 12px 24px;
+            border-radius: 8px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: background 0.2s ease;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
+            background: #2563eb;
         }
 
         .results-grid {
@@ -568,28 +558,16 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
         }
 
         .result-card {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 2px solid #0ea5e9;
-            border-radius: 16px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .result-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(180deg, #0ea5e9 0%, #06b6d4 100%);
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            transition: background 0.2s ease;
+            margin-bottom: 12px;
         }
 
         .result-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.2);
+            background: #f1f5f9;
         }
 
         .result-main {
@@ -607,12 +585,12 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 
         .palindrome-badge {
             display: inline-block;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            background: #f59e0b;
             color: white;
-            padding: 4px 8px;
-            border-radius: 20px;
+            padding: 2px 8px;
+            border-radius: 12px;
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 500;
             margin-left: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -628,8 +606,8 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
         }
 
         .api-section {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(0,0,0,0.1);
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
             margin-top: 30px;
         }
 
@@ -639,31 +617,31 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
         }
 
         .code-block {
-            background: #1f2937;
-            color: #e5e7eb;
-            padding: 16px;
-            border-radius: 8px;
+            background: #f1f5f9;
+            color: #374151;
+            padding: 12px;
+            border-radius: 6px;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 14px;
             overflow-x: auto;
             margin: 10px 0;
-            border: 1px solid #374151;
+            border: 1px solid #e2e8f0;
         }
 
         .api-link {
             display: inline-block;
-            background: #059669;
+            background: #3b82f6;
             color: white;
             padding: 8px 16px;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: 500;
             margin-top: 10px;
-            transition: background 0.3s ease;
+            transition: background 0.2s ease;
         }
 
         .api-link:hover {
-            background: #047857;
+            background: #2563eb;
         }
 
         .stats {
