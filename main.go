@@ -711,7 +711,7 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 <body>
     <div class="wrapper">
         <div class="header">
-            <h1>Palindromic Fuel Calculator</h1>
+            <h1>⛽ Palindromic Fuel Calculator</h1>
             <p>Discover fuel costs that read the same forwards and backwards!</p>
         </div>
 
@@ -763,7 +763,7 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
                     <div class="result-main">
                         {{.FormattedLitres}}L = £{{.CostPounds}}
                         {{if .LitresIsPalindrome}}
-                            <span class="palindrome-badge">PALINDROME</span>
+                            <span class="palindrome-badge">⭐ PALINDROME</span>
                         {{end}}
                     </div>
                     <div class="result-meta">
