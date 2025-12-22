@@ -312,9 +312,14 @@ type CalculateResponse struct {
 }
 
 type TemplateData struct {
-	Results []Result
+	Results []DisplayResult
 	Error   string
 	Request CalculateRequest
+}
+
+type DisplayResult struct {
+	Result
+	FormattedLitres string
 }
 
 // handleAPI handles the REST API endpoint
@@ -388,7 +393,18 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 
 			if err1 == nil && err2 == nil {
 				data.Request = CalculateRequest{PricePerLitre: price, MaxLitres: max}
-				data.Results = FindPalindromicFuelCosts(price, max)
+				results := FindPalindromicFuelCosts(price, max)
+				data.Results = make([]DisplayResult, len(results))
+				for i, result := range results {
+					formattedLitres := fmt.Sprintf("%.2f", result.Litres)
+					if result.Litres == math.Floor(result.Litres) {
+						formattedLitres = fmt.Sprintf("%.0f", result.Litres)
+					}
+					data.Results[i] = DisplayResult{
+						Result:          result,
+						FormattedLitres: formattedLitres,
+					}
+				}
 			} else {
 				data.Error = "Invalid input values"
 			}
@@ -437,7 +453,7 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 
         {{range .Results}}
         <div class="result">
-            <strong>{{if eq .Litres .Litres|printf "%.0f"|atoi|printf "%.0f"}}{{.Litres|printf "%.0f"}}{{else}}{{.Litres|printf "%.2f"}}{{end}} litres = £{{.CostPounds}}</strong>
+            <strong>{{.FormattedLitres}} litres = £{{.CostPounds}}</strong>
             <br><small>
                 {{if .LitresIsPalindrome}}
                     {{if eq .Type "palindromic_decimal"}}(palindromic decimal litres){{else}}(palindromic whole litres){{end}}
