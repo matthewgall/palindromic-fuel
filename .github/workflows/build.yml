@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubicloud
 
     steps:
     - uses: actions/checkout@v6
