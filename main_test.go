@@ -18,6 +18,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"reflect"
 	"strings"
@@ -441,6 +445,89 @@ func TestExportToCSV(t *testing.T) {
 		if !strings.Contains(contentStr, line) {
 			t.Errorf("Expected line %q not found in exported CSV", line)
 		}
+	}
+}
+
+func TestHandleAPI(t *testing.T) {
+	// Test GET request
+	req, err := http.NewRequest("GET", "/api/calculate?price=128.9&max=50", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handleAPI)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	var response CalculateResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Errorf("Failed to unmarshal response: %v", err)
+	}
+
+	if len(response.Results) == 0 {
+		t.Errorf("Expected some results, got 0")
+	}
+
+	if response.Error != "" {
+		t.Errorf("Unexpected error in response: %s", response.Error)
+	}
+}
+
+func TestHandleAPI_POST(t *testing.T) {
+	// Test POST request
+	reqBody := CalculateRequest{PricePerLitre: 128.9, MaxLitres: 50}
+	jsonBody, _ := json.Marshal(reqBody)
+
+	req, err := http.NewRequest("POST", "/api/calculate", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handleAPI)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	var response CalculateResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Errorf("Failed to unmarshal response: %v", err)
+	}
+
+	if len(response.Results) == 0 {
+		t.Errorf("Expected some results, got 0")
+	}
+}
+
+func TestHandleAPI_InvalidInput(t *testing.T) {
+	// Test invalid GET request
+	req, err := http.NewRequest("GET", "/api/calculate?price=invalid&max=50", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handleAPI)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	var response CalculateResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Errorf("Failed to unmarshal response: %v", err)
+	}
+
+	if response.Error == "" {
+		t.Errorf("Expected error in response for invalid input")
 	}
 }
 

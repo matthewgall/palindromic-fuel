@@ -19,9 +19,13 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
+	"log"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -296,6 +300,183 @@ func BatchFindPalindromicCosts(prices []float64, maxLitres int) map[float64][]Re
 	return results
 }
 
+// Web server types and handlers
+type CalculateRequest struct {
+	PricePerLitre float64 `json:"pricePerLitre"`
+	MaxLitres     int     `json:"maxLitres"`
+}
+
+type CalculateResponse struct {
+	Results []Result `json:"results"`
+	Error   string   `json:"error,omitempty"`
+}
+
+type TemplateData struct {
+	Results []Result
+	Error   string
+	Request CalculateRequest
+}
+
+// handleAPI handles the REST API endpoint
+func handleAPI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		return
+	}
+
+	if r.Method != "POST" && r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req CalculateRequest
+	if r.Method == "POST" {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			json.NewEncoder(w).Encode(CalculateResponse{Error: "Invalid JSON"})
+			return
+		}
+	} else {
+		// GET request - parse query parameters
+		priceStr := r.URL.Query().Get("price")
+		maxStr := r.URL.Query().Get("max")
+
+		if priceStr == "" || maxStr == "" {
+			json.NewEncoder(w).Encode(CalculateResponse{Error: "Missing price or max parameters"})
+			return
+		}
+
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			json.NewEncoder(w).Encode(CalculateResponse{Error: "Invalid price parameter"})
+			return
+		}
+
+		max, err := strconv.Atoi(maxStr)
+		if err != nil {
+			json.NewEncoder(w).Encode(CalculateResponse{Error: "Invalid max parameter"})
+			return
+		}
+
+		req = CalculateRequest{PricePerLitre: price, MaxLitres: max}
+	}
+
+	results := FindPalindromicFuelCosts(req.PricePerLitre, req.MaxLitres)
+	json.NewEncoder(w).Encode(CalculateResponse{Results: results})
+}
+
+// handleWebUI handles the web interface
+func handleWebUI(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" && r.URL.Path != "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	data := TemplateData{}
+
+	if r.Method == "POST" {
+		r.ParseForm()
+		priceStr := r.FormValue("price")
+		maxStr := r.FormValue("max")
+
+		if priceStr != "" && maxStr != "" {
+			price, err1 := strconv.ParseFloat(priceStr, 64)
+			max, err2 := strconv.Atoi(maxStr)
+
+			if err1 == nil && err2 == nil {
+				data.Request = CalculateRequest{PricePerLitre: price, MaxLitres: max}
+				data.Results = FindPalindromicFuelCosts(price, max)
+			} else {
+				data.Error = "Invalid input values"
+			}
+		}
+	}
+
+	tmpl := `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Palindromic Fuel Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        input, button { padding: 8px; margin: 5px; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { background: white; padding: 15px; margin: 10px 0; border-radius: 4px; border-left: 4px solid #28a745; }
+        .error { color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 4px; }
+        .api-info { background: #e9ecef; padding: 15px; border-radius: 4px; margin-top: 20px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚗✨ Palindromic Fuel Calculator</h1>
+    <p>Find fuel costs that read the same forwards and backwards!</p>
+
+    <div class="container">
+        <h2>Calculate</h2>
+        <form method="POST">
+            <input type="number" name="price" step="0.01" placeholder="Price per litre (e.g., 128.9)" required>
+            <input type="number" name="max" placeholder="Max litres (e.g., 100)" required>
+            <button type="submit">Calculate</button>
+        </form>
+    </div>
+
+    {{if .Error}}
+    <div class="error">{{.Error}}</div>
+    {{end}}
+
+    {{if .Results}}
+    <div class="container">
+        <h2>Results</h2>
+        <p>Fuel Price: {{.Request.PricePerLitre}}p/litre</p>
+        <p>Found {{len .Results}} palindromic cost(s):</p>
+
+        {{range .Results}}
+        <div class="result">
+            <strong>{{if eq .Litres .Litres|printf "%.0f"|atoi|printf "%.0f"}}{{.Litres|printf "%.0f"}}{{else}}{{.Litres|printf "%.2f"}}{{end}} litres = £{{.CostPounds}}</strong>
+            <br><small>
+                {{if .LitresIsPalindrome}}
+                    {{if eq .Type "palindromic_decimal"}}(palindromic decimal litres){{else}}(palindromic whole litres){{end}}
+                {{else}}
+                    (whole number litres)
+                {{end}}
+            </small>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
+    <div class="api-info">
+        <h3>API Usage</h3>
+        <p>This calculator also provides a REST API:</p>
+
+        <h4>GET Request:</h4>
+        <pre>curl "http://localhost:8080/api/calculate?price=128.9&max=100"</pre>
+
+        <h4>POST Request:</h4>
+        <pre>curl -X POST http://localhost:8080/api/calculate \
+  -H "Content-Type: application/json" \
+  -d '{"pricePerLitre": 128.9, "maxLitres": 100}'</pre>
+
+        <p><a href="/api/calculate?price=128.9&max=50" target="_blank">Try the API</a></p>
+    </div>
+</body>
+</html>`
+
+	t, err := template.New("webui").Parse(tmpl)
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	t.Execute(w, data)
+}
+
 func main() {
 	pricePtr := flag.Float64("price", 0, "Price per litre in pence (required)")
 	maxLitresPtr := flag.Int("max", 10000, "Maximum litres to check")
@@ -304,10 +485,24 @@ func main() {
 	searchRadiusPtr := flag.Int("radius", 100, "Search radius for reverse lookup")
 	batchPtr := flag.String("batch", "", "Comma-separated list of prices for batch processing")
 	csvPtr := flag.String("csv", "", "Export results to CSV file (e.g., results.csv)")
+	webPtr := flag.Bool("web", false, "Start web server on port 8080")
+	portPtr := flag.String("port", "8080", "Port for web server")
 
 	flag.Parse()
 
-	if *pricePtr == 0 && *batchPtr == "" {
+	// Web server mode
+	if *webPtr {
+		fmt.Printf("Starting web server on port %s\n", *portPtr)
+		fmt.Printf("Web UI: http://localhost:%s\n", *portPtr)
+		fmt.Printf("API: http://localhost:%s/api/calculate\n", *portPtr)
+
+		http.HandleFunc("/", handleWebUI)
+		http.HandleFunc("/api/calculate", handleAPI)
+
+		log.Fatal(http.ListenAndServe(":"+*portPtr, nil))
+	}
+
+	if *pricePtr == 0 && *batchPtr == "" && !*webPtr {
 		fmt.Println("Palindromic Fuel Cost Calculator")
 		fmt.Println("================================")
 		fmt.Println()
@@ -329,6 +524,10 @@ func main() {
 		fmt.Println()
 		fmt.Println("  Batch mode with CSV export:")
 		fmt.Println("    ./palindromic-fuel -batch=128.9,135.7,142.3 -max=1000 -csv=batch.csv")
+		fmt.Println()
+		fmt.Println("  Web server mode:")
+		fmt.Println("    ./palindromic-fuel -web")
+		fmt.Println("    ./palindromic-fuel -web -port=3000")
 		fmt.Println()
 		return
 	}
