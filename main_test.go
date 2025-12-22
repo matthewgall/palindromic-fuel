@@ -235,7 +235,14 @@ func TestFindPalindromicFuelCosts(t *testing.T) {
 			Type:               "whole",
 		}},
 		{"zero price", 0, 10, 0, false, nil},
-		{"very high price", 1000, 1, 0, false, nil}, // no results in range
+		{"very high price", 1000, 1, 0, false, nil},                       // no results in range
+		{"fractional price", 0.5, 10, 0, false, nil},                      // results would be < 1 litre
+		{"very low max litres", 128.9, 1, 0, false, nil},                  // no results fit in 1 litre
+		{"high price with small range", 500.0, 5, 2, false, nil},          // some results still possible
+		{"very small price", 0.01, 10000, 0, false, nil},                  // results would be huge litres
+		{"price causing fractional litres", 200.0, 10, 1, false, nil},     // should skip some fractional results
+		{"price producing sub-litre results", 1000.0, 50, 18, false, nil}, // very high price, small volumes
+		{"price for decimal palindrome test", 131.0, 50, 2, false, nil},   // should trigger decimal palindrome check
 	}
 
 	for _, tt := range tests {
@@ -349,17 +356,52 @@ func TestBatchFindPalindromicCosts(t *testing.T) {
 }
 
 func TestPrintResult(t *testing.T) {
-	// Test printResult by capturing output (this is a bit tricky since it prints to stdout)
-	// We'll test that it doesn't panic and produces some output
-	result := Result{
-		Litres:             25.0,
-		CostPounds:         "32.23",
-		LitresIsPalindrome: false,
-		Type:               "whole",
+	tests := []struct {
+		name   string
+		result Result
+	}{
+		{"whole number litres", Result{
+			Litres:             25.0,
+			CostPounds:         "32.23",
+			LitresIsPalindrome: false,
+			Type:               "whole",
+		}},
+		{"palindromic whole litres", Result{
+			Litres:             121.0,
+			CostPounds:         "50.05",
+			LitresIsPalindrome: true,
+			Type:               "whole",
+		}},
+		{"palindromic decimal litres", Result{
+			Litres:             38.83,
+			CostPounds:         "50.05",
+			LitresIsPalindrome: true,
+			Type:               "palindromic_decimal",
+		}},
+		{"decimal litres", Result{
+			Litres:             15.75,
+			CostPounds:         "20.31",
+			LitresIsPalindrome: false,
+			Type:               "whole",
+		}},
 	}
 
-	// This should not panic
-	printResult(result)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test that it doesn't panic
+			printResult(tt.result)
+		})
+	}
+}
+
+func TestPrintResults(t *testing.T) {
+	results := []Result{
+		{Litres: 25.0, CostPounds: "32.23", LitresIsPalindrome: false, Type: "whole"},
+		{Litres: 38.83, CostPounds: "50.05", LitresIsPalindrome: true, Type: "palindromic_decimal"},
+	}
+
+	// Test that it doesn't panic
+	printResults(results, 128.9)
 }
 
 func TestExportToCSV(t *testing.T) {
@@ -444,6 +486,52 @@ func TestExportBatchToCSV(t *testing.T) {
 	}
 	if !strings.Contains(contentStr, "135.7,20,27.14,No,whole") {
 		t.Errorf("Second price data not found in exported batch CSV")
+	}
+}
+
+func TestExportToCSVEdgeCases(t *testing.T) {
+	// Test empty results
+	emptyResults := []Result{}
+	tmpfile, err := os.CreateTemp("", "test_empty_*.csv")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpfile.Name())
+	defer tmpfile.Close()
+
+	err = exportToCSV(tmpfile.Name(), emptyResults, 128.9)
+	if err != nil {
+		t.Errorf("exportToCSV with empty results failed: %v", err)
+	}
+
+	content, err := os.ReadFile(tmpfile.Name())
+	if err != nil {
+		t.Errorf("Failed to read exported file: %v", err)
+	}
+
+	contentStr := string(content)
+	// Should still have header
+	if !strings.Contains(contentStr, "Price per Litre (p)") {
+		t.Errorf("CSV header not found in empty export")
+	}
+
+	// Test with various result types
+	diverseResults := []Result{
+		{Litres: 25.0, CostPounds: "32.23", LitresIsPalindrome: true, Type: "whole"},                 // integer litres, palindromic
+		{Litres: 38.83, CostPounds: "50.05", LitresIsPalindrome: false, Type: "palindromic_decimal"}, // decimal, not palindromic litres
+		{Litres: 1.5, CostPounds: "1.93", LitresIsPalindrome: false, Type: "whole"},                  // decimal litres
+	}
+
+	tmpfile2, err := os.CreateTemp("", "test_diverse_*.csv")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpfile2.Name())
+	defer tmpfile2.Close()
+
+	err = exportToCSV(tmpfile2.Name(), diverseResults, 128.9)
+	if err != nil {
+		t.Errorf("exportToCSV with diverse results failed: %v", err)
 	}
 }
 
