@@ -46,8 +46,8 @@ jobs:
     - name: Run staticcheck
       run: staticcheck main.go
 
-  build-and-push:
-    runs-on: ubuntu-latest
+  docker-build:
+    runs-on: ubicloud
     permissions:
       contents: read
       packages: write
