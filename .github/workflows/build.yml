@@ -7,8 +7,11 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: ubicloud
+    strategy:
+      matrix:
+        go-version: ['1.23', '1.24', '1.25']
 
     steps:
     - uses: actions/checkout@v6
@@ -16,7 +19,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: '1.25'
+        go-version: ${{ matrix.go-version }}
 
     - name: Verify dependencies
       run: go mod tidy
