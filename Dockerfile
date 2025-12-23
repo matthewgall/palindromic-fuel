@@ -15,16 +15,11 @@ COPY main.go main_test.go ./
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o palindromic-fuel main.go
 
-# Final stage
-FROM alpine:latest
-
-# Install ca-certificates for HTTPS requests (if needed)
-RUN apk --no-cache add ca-certificates
-
-WORKDIR /root/
+# Final stage - use scratch for minimal, secure image
+FROM scratch
 
 # Copy the binary from builder stage
-COPY --from=builder /app/palindromic-fuel .
+COPY --from=builder /app/palindromic-fuel /palindromic-fuel
 
 # Expose port for web server
 EXPOSE 8080
@@ -33,4 +28,4 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Run the application
-CMD ["./palindromic-fuel", "-web"]
+CMD ["/palindromic-fuel", "-web"]
