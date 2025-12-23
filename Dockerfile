@@ -4,9 +4,9 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY go.mod ./
 
-# Download dependencies
+# Download dependencies (go.sum will be created if needed)
 RUN go mod download
 
 # Copy source code
