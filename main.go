@@ -38,10 +38,10 @@ import (
 var tmpl string
 
 // Imperial or Metric
-var volumeName string
+var volumeName string = "litre"
 
 // Currency
-var currencyName string
+var currencyName string = "£"
 
 // Result represents a palindromic fuel cost finding
 type Result struct {
@@ -468,7 +468,6 @@ func main() {
 
 	flag.Parse()
 
-	volumeName = "litre"
 	if *imperialPtr {
 		volumeName = "gallon"
 	}
@@ -686,7 +685,7 @@ func exportToCSV(filename string, results []Result, price float64) error {
 	defer writer.Flush()
 
 	// Write header
-	header := []string{"Price per " + volumeName + " (p)", volumeName + "s", "Cost (" + currencyName + ")", volumeName + "s is Palindrome", "Type"}
+	header := []string{"Price per " + strings.Title(volumeName) + " (p)", strings.Title(volumeName) + "s", "Cost (" + currencyName + ")", strings.Title(volumeName) + "s is Palindrome", "Type"}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
 	}
@@ -731,7 +730,7 @@ func exportBatchToCSV(filename string, batchResults map[float64][]Result, prices
 	defer writer.Flush()
 
 	// Write header
-	header := []string{"Price per " + volumeName + " (p)", volumeName + "s", "Cost (" + currencyName + ")", volumeName + "s is Palindrome", "Type"}
+	header := []string{"Price per " + strings.Title(volumeName) + " (p)", strings.Title(volumeName) + "s", "Cost (" + currencyName + ")", strings.Title(volumeName) + "s is Palindrome", "Type"}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
 	}
