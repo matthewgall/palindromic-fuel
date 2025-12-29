@@ -71,6 +71,8 @@ Output:
 | `-csv` | Export to CSV |
 | `-web` | Start web server on port 8080 |
 | `-port` | Port for web server (default: 8080) |
+| `-imperial` | Use imperial values (vs. metric) |
+| `-currency` | Use this currency (default: £) |
 
 ## 🌐 Web Interface
 

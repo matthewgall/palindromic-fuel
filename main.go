@@ -32,16 +32,24 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 //go:embed templates/index.html
 var tmpl string
 
+// Imperial or Metric
+var volumeName string = "litre"
+
+// Currency
+var currencyName string = "£"
+
 // Result represents a palindromic fuel cost finding
 type Result struct {
-	Litres             float64
+	Volume             float64
 	CostPounds         string
-	LitresIsPalindrome bool
+	VolumeIsPalindrome bool
 	Type               string
 }
 
@@ -158,17 +166,17 @@ func isEffectivelyInteger(f float64, epsilon float64) bool {
 }
 
 // FindPalindromicFuelCosts finds all palindromic fuel costs for a given price
-func FindPalindromicFuelCosts(pricePerLitre float64, maxLitres int, epsilon float64) []Result {
+func FindPalindromicFuelCosts(PricePerVolume float64, maxVolume int, epsilon float64) []Result {
 	var results []Result
 
-	minPence := int(math.Floor(pricePerLitre))
-	maxPence := int(math.Ceil(float64(maxLitres) * pricePerLitre))
+	minPence := int(math.Floor(PricePerVolume))
+	maxPence := int(math.Ceil(float64(maxVolume) * PricePerVolume))
 
 	// Get all palindromic pence values
 	palindromicPences := getPalindromicPencesInRange(minPence, maxPence)
 
 	// Pre-calculate reciprocal for faster division
-	reciprocalPrice := 1.0 / pricePerLitre
+	reciprocalPrice := 1.0 / PricePerVolume
 
 	for _, pencePrice := range palindromicPences {
 		// Check if this palindromic pence is also palindromic as pounds
@@ -177,35 +185,35 @@ func FindPalindromicFuelCosts(pricePerLitre float64, maxLitres int, epsilon floa
 			continue
 		}
 
-		litres := float64(pencePrice) * reciprocalPrice
+		fuelVolume := float64(pencePrice) * reciprocalPrice
 
-		// Skip if exceeds max litres or less than 1
-		if litres > float64(maxLitres) {
+		// Skip if exceeds max volume (litres or gallons) or less than 1
+		if fuelVolume > float64(maxVolume) {
 			break
 		}
-		if litres < 1.0 {
+		if fuelVolume < 1.0 {
 			continue
 		}
 
-		// Check if litres is effectively a whole number
-		if isEffectivelyInteger(litres, epsilon) {
-			wholeLitres := int(math.Round(litres))
+		// Check if volume (litres or gallons) is effectively a whole number
+		if isEffectivelyInteger(fuelVolume, epsilon) {
+			wholeVolume := int(math.Round(fuelVolume))
 			results = append(results, Result{
-				Litres:             float64(wholeLitres),
+				Volume:             float64(wholeVolume),
 				CostPounds:         poundsStr,
-				LitresIsPalindrome: isPalindrome(wholeLitres),
+				VolumeIsPalindrome: isPalindrome(wholeVolume),
 				Type:               "whole",
 			})
 		} else {
-			// Check if litres value itself is palindromic
-			litresRounded := math.Round(litres*100) / 100
-			litresStr := fmt.Sprintf("%.2f", litresRounded)
+			// Check if volume (litres or gallons) value itself is palindromic
+			volumeRounded := math.Round(fuelVolume*100) / 100
+			volumeStr := fmt.Sprintf("%.2f", volumeRounded)
 
-			if isPalindromeString(litresStr) {
+			if isPalindromeString(volumeStr) {
 				results = append(results, Result{
-					Litres:             litresRounded,
+					Volume:             volumeRounded,
 					CostPounds:         poundsStr,
-					LitresIsPalindrome: true,
+					VolumeIsPalindrome: true,
 					Type:               "palindromic_decimal",
 				})
 			}
@@ -216,21 +224,21 @@ func FindPalindromicFuelCosts(pricePerLitre float64, maxLitres int, epsilon floa
 }
 
 // FindNearestPalindromicCost finds the nearest palindromic cost to a target amount
-func FindNearestPalindromicCost(pricePerLitre float64, targetLitres float64, searchRadius int, epsilon float64) *Result {
-	minLitres := int(math.Max(1, targetLitres-float64(searchRadius)))
-	maxLitres := int(targetLitres + float64(searchRadius))
+func FindNearestPalindromicCost(PricePerVolume float64, targetVolume float64, searchRadius int, epsilon float64) *Result {
+	minVolume := int(math.Max(1, targetVolume-float64(searchRadius)))
+	maxVolume := int(targetVolume + float64(searchRadius))
 
-	results := FindPalindromicFuelCosts(pricePerLitre, maxLitres, epsilon)
+	results := FindPalindromicFuelCosts(PricePerVolume, maxVolume, epsilon)
 
 	var nearest *Result
 	minDiff := math.MaxFloat64
 
 	for i := range results {
-		if results[i].Litres < float64(minLitres) {
+		if results[i].Volume < float64(minVolume) {
 			continue
 		}
 
-		diff := math.Abs(results[i].Litres - targetLitres)
+		diff := math.Abs(results[i].Volume - targetVolume)
 		if diff < minDiff {
 			minDiff = diff
 			nearest = &results[i]
@@ -241,7 +249,7 @@ func FindNearestPalindromicCost(pricePerLitre float64, targetLitres float64, sea
 }
 
 // FindPalindromicCostForTarget finds palindromic costs near a target price
-func FindPalindromicCostForTarget(pricePerLitre float64, targetPounds float64, searchRadiusPence int, epsilon float64) []Result {
+func FindPalindromicCostForTarget(PricePerVolume float64, targetPounds float64, searchRadiusPence int, epsilon float64) []Result {
 	var results []Result
 
 	targetPence := int(math.Round(targetPounds * 100))
@@ -254,7 +262,7 @@ func FindPalindromicCostForTarget(pricePerLitre float64, targetPounds float64, s
 
 	// Get palindromic pences in range
 	palindromicPences := getPalindromicPencesInRange(minPence, maxPence)
-	reciprocalPrice := 1.0 / pricePerLitre
+	reciprocalPrice := 1.0 / PricePerVolume
 
 	for _, pencePrice := range palindromicPences {
 		poundsStr := formatPounds(pencePrice)
@@ -262,29 +270,29 @@ func FindPalindromicCostForTarget(pricePerLitre float64, targetPounds float64, s
 			continue
 		}
 
-		litres := float64(pencePrice) * reciprocalPrice
+		fuelVolume := float64(pencePrice) * reciprocalPrice
 
-		if litres < 1.0 {
+		if fuelVolume < 1.0 {
 			continue
 		}
 
-		if isEffectivelyInteger(litres, epsilon) {
-			wholeLitres := int(math.Round(litres))
+		if isEffectivelyInteger(fuelVolume, epsilon) {
+			wholeVolume := int(math.Round(fuelVolume))
 			results = append(results, Result{
-				Litres:             float64(wholeLitres),
+				Volume:             float64(wholeVolume),
 				CostPounds:         poundsStr,
-				LitresIsPalindrome: isPalindrome(wholeLitres),
+				VolumeIsPalindrome: isPalindrome(wholeVolume),
 				Type:               "whole",
 			})
 		} else {
-			litresRounded := math.Round(litres*100) / 100
-			litresStr := fmt.Sprintf("%.2f", litresRounded)
+			volumeRounded := math.Round(fuelVolume*100) / 100
+			volumeStr := fmt.Sprintf("%.2f", volumeRounded)
 
-			if isPalindromeString(litresStr) {
+			if isPalindromeString(volumeStr) {
 				results = append(results, Result{
-					Litres:             litresRounded,
+					Volume:             volumeRounded,
 					CostPounds:         poundsStr,
-					LitresIsPalindrome: true,
+					VolumeIsPalindrome: true,
 					Type:               "palindromic_decimal",
 				})
 			}
@@ -295,7 +303,7 @@ func FindPalindromicCostForTarget(pricePerLitre float64, targetPounds float64, s
 }
 
 // BatchFindPalindromicCosts processes multiple fuel prices concurrently
-func BatchFindPalindromicCosts(prices []float64, maxLitres int, epsilon float64) map[float64][]Result {
+func BatchFindPalindromicCosts(prices []float64, maxVolume int, epsilon float64) map[float64][]Result {
 	results := make(map[float64][]Result)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -304,7 +312,7 @@ func BatchFindPalindromicCosts(prices []float64, maxLitres int, epsilon float64)
 		wg.Add(1)
 		go func(p float64) {
 			defer wg.Done()
-			res := FindPalindromicFuelCosts(p, maxLitres, epsilon)
+			res := FindPalindromicFuelCosts(p, maxVolume, epsilon)
 			mu.Lock()
 			results[p] = res
 			mu.Unlock()
@@ -317,8 +325,8 @@ func BatchFindPalindromicCosts(prices []float64, maxLitres int, epsilon float64)
 
 // Web server types and handlers
 type CalculateRequest struct {
-	PricePerLitre float64 `json:"pricePerLitre"`
-	MaxLitres     int     `json:"maxLitres"`
+	PricePerVolume float64 `json:"PricePerVolume"`
+	MaxVolume     int     `json:"maxVolume"`
 }
 
 type CalculateResponse struct {
@@ -335,7 +343,7 @@ type TemplateData struct {
 
 type DisplayResult struct {
 	Result
-	FormattedLitres string
+	FormattedVolume string
 }
 
 // handleAPI handles the REST API endpoint
@@ -382,10 +390,10 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		req = CalculateRequest{PricePerLitre: price, MaxLitres: max}
+		req = CalculateRequest{PricePerVolume: price, MaxVolume: max}
 	}
 
-	results := FindPalindromicFuelCosts(req.PricePerLitre, req.MaxLitres, 0.01)
+	results := FindPalindromicFuelCosts(req.PricePerVolume, req.MaxVolume, 0.01)
 	json.NewEncoder(w).Encode(CalculateResponse{Results: results})
 }
 
@@ -417,17 +425,17 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 			max, err2 := strconv.Atoi(maxStr)
 
 			if err1 == nil && err2 == nil {
-				data.Request = CalculateRequest{PricePerLitre: price, MaxLitres: max}
+				data.Request = CalculateRequest{PricePerVolume: price, MaxVolume: max}
 				results := FindPalindromicFuelCosts(price, max, 0.01)
 				data.Results = make([]DisplayResult, len(results))
 				for i, result := range results {
-					formattedLitres := fmt.Sprintf("%.2f", result.Litres)
-					if result.Litres == math.Floor(result.Litres) {
-						formattedLitres = fmt.Sprintf("%.0f", result.Litres)
+					formattedVolume := fmt.Sprintf("%.2f", result.Volume)
+					if result.Volume == math.Floor(result.Volume) {
+						formattedVolume = fmt.Sprintf("%.0f", result.Volume)
 					}
 					data.Results[i] = DisplayResult{
 						Result:          result,
-						FormattedLitres: formattedLitres,
+						FormattedVolume: formattedVolume,
 					}
 				}
 			} else {
@@ -447,9 +455,9 @@ func handleWebUI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	pricePtr := flag.Float64("price", 0, "Price per litre in pence (required)")
-	maxLitresPtr := flag.Int("max", 10000, "Maximum litres to check")
-	reverseLitresPtr := flag.Float64("reverse-litres", 0, "Find nearest palindrome to this litre amount")
+	pricePtr := flag.Float64("price", 0, "Price per litre/gallon in pence (required)")
+	maxVolumePtr := flag.Int("max", 10000, "Maximum litres/gallons to check")
+	reverseVolumePtr := flag.Float64("reverse-litres", 0, "Find nearest palindrome to this litre/us-gallon amount")
 	reversePricePtr := flag.Float64("reverse-price", 0, "Find palindromes near this target price in pounds")
 	searchRadiusPtr := flag.Int("radius", 100, "Search radius for reverse lookup")
 	epsilonPtr := flag.Float64("epsilon", 0.01, "Epsilon for integer check")
@@ -457,8 +465,15 @@ func main() {
 	csvPtr := flag.String("csv", "", "Export results to CSV file (e.g., results.csv)")
 	webPtr := flag.Bool("web", false, "Start web server on port 8080")
 	portPtr := flag.String("port", "8080", "Port for web server")
+	imperialPtr := flag.Bool("imperial", false, "Use imperial values (vs. metric)")
+	currencyPtr := flag.String("currency", "£", "Use this currency (default: £)")
 
 	flag.Parse()
+
+	if *imperialPtr {
+		volumeName = "gallon"
+	}
+	currencyName = *currencyPtr
 
 	// Web server mode
 	if *webPtr {
@@ -496,7 +511,7 @@ func main() {
 		fmt.Println("  With CSV export:")
 		fmt.Println("    ./palindromic-fuel -price=128.9 -max=100 -csv=results.csv")
 		fmt.Println()
-		fmt.Println("  Reverse lookup (find nearest to target litres):")
+		fmt.Println("  Reverse lookup (find nearest to target litres/gallons):")
 		fmt.Println("    ./palindromic-fuel -price=128.9 -reverse-litres=50 -radius=100")
 		fmt.Println()
 		fmt.Println("  Reverse lookup (find palindromes near target price):")
@@ -531,7 +546,7 @@ func main() {
 
 		fmt.Printf("\n=== Batch Processing %d Fuel Prices ===\n", len(prices))
 		start := time.Now()
-		results := BatchFindPalindromicCosts(prices, *maxLitresPtr, *epsilonPtr)
+		results := BatchFindPalindromicCosts(prices, *maxVolumePtr, *epsilonPtr)
 		elapsed := time.Since(start)
 
 		fmt.Printf("\nTotal batch time: %.3fms\n", float64(elapsed.Microseconds())/1000.0)
@@ -553,20 +568,20 @@ func main() {
 		return
 	}
 
-	// Reverse lookup by litres
-	if *reverseLitresPtr > 0 {
-		fmt.Printf("\nFinding nearest palindromic cost to %.2f litres at %.1fp/litre\n", *reverseLitresPtr, *pricePtr)
-		fmt.Printf("Search radius: ±%d litres\n", *searchRadiusPtr)
+	// Reverse lookup by volume (litres or gallons)
+	if *reverseVolumePtr > 0 {
+		fmt.Printf("\nFinding nearest palindromic cost to %.2f %ss at %.1fp/%s\n", *reverseVolumePtr, volumeName, *pricePtr, volumeName)
+		fmt.Printf("Search radius: ±%d %ss\n", *searchRadiusPtr, volumeName)
 
 		start := time.Now()
-		result := FindNearestPalindromicCost(*pricePtr, *reverseLitresPtr, *searchRadiusPtr, *epsilonPtr)
+		result := FindNearestPalindromicCost(*pricePtr, *reverseVolumePtr, *searchRadiusPtr, *epsilonPtr)
 		elapsed := time.Since(start)
 
 		if result != nil {
 			fmt.Printf("\nNearest palindromic cost:\n")
 			printResult(*result)
-			diff := math.Abs(result.Litres - *reverseLitresPtr)
-			fmt.Printf("Difference: %.2f litres\n", diff)
+			diff := math.Abs(result.Volume - *reverseVolumePtr)
+			fmt.Printf("Difference: %.2f %ss\n", diff, volumeName)
 		} else {
 			fmt.Println("\nNo palindromic costs found in search radius")
 		}
@@ -577,7 +592,7 @@ func main() {
 
 	// Reverse lookup by price
 	if *reversePricePtr > 0 {
-		fmt.Printf("\nFinding palindromic costs near £%.2f at %.1fp/litre\n", *reversePricePtr, *pricePtr)
+		fmt.Printf("\nFinding palindromic costs near %s%.2f at %.1fp/%s\n", currencyName, *reversePricePtr, *pricePtr, volumeName)
 		fmt.Printf("Search radius: ±%dp\n", *searchRadiusPtr)
 
 		start := time.Now()
@@ -589,7 +604,7 @@ func main() {
 			for _, result := range results {
 				printResult(result)
 				targetDiff := math.Abs(parseFloat(result.CostPounds) - *reversePricePtr)
-				fmt.Printf("  Price difference: £%.2f\n", targetDiff)
+				fmt.Printf("  Price difference: %s%.2f\n", currencyName, targetDiff)
 			}
 		} else {
 			fmt.Println("\nNo palindromic costs found in search radius")
@@ -601,11 +616,11 @@ func main() {
 
 	// Normal mode
 	start := time.Now()
-	results := FindPalindromicFuelCosts(*pricePtr, *maxLitresPtr, *epsilonPtr)
+	results := FindPalindromicFuelCosts(*pricePtr, *maxVolumePtr, *epsilonPtr)
 	elapsed := time.Since(start)
 
 	fmt.Printf("\nPerformance: Found %d results in %.3fms\n", len(results), float64(elapsed.Microseconds())/1000.0)
-	fmt.Printf("Effective range checked: 1-%d litres\n", *maxLitresPtr)
+	fmt.Printf("Effective range checked: 1-%d %ss\n", *maxVolumePtr, volumeName)
 
 	printResults(results, *pricePtr)
 
@@ -620,7 +635,7 @@ func main() {
 }
 
 func printResults(results []Result, price float64) {
-	fmt.Printf("\nFuel Price: %.1fp/litre\n", price)
+	fmt.Printf("\nFuel Price: %.1fp/%s\n", price, volumeName)
 	fmt.Printf("Found %d palindromic costs:\n\n", len(results))
 
 	maxShow := 50
@@ -639,25 +654,30 @@ func printResults(results []Result, price float64) {
 }
 
 func printResult(result Result) {
-	litresStatus := "(whole number litres)"
-	if result.LitresIsPalindrome {
+	volumeStatus := "whole number"
+	if result.VolumeIsPalindrome {
 		if result.Type == "palindromic_decimal" {
-			litresStatus = "(palindromic decimal litres)"
+			volumeStatus = "palindromic decimal"
 		} else {
-			litresStatus = "(palindromic whole litres)"
+			volumeStatus = "palindromic whole"
 		}
 	}
 
-	if result.Litres == math.Floor(result.Litres) {
-		fmt.Printf("%.0f litres = £%s %s\n", result.Litres, result.CostPounds, litresStatus)
+	if result.Volume == math.Floor(result.Volume) {
+		fmt.Printf("%.0f %ss = %s%s (%s %ss)\n", result.Volume, volumeName, currencyName, result.CostPounds, volumeStatus, volumeName)
 	} else {
-		fmt.Printf("%.2f litres = £%s %s\n", result.Litres, result.CostPounds, litresStatus)
+		fmt.Printf("%.2f %ss = %s%s (%s %ss)\n", result.Volume, volumeName, currencyName, result.CostPounds, volumeStatus, volumeName)
 	}
 }
 
 func parseFloat(s string) float64 {
 	f, _ := strconv.ParseFloat(s, 64)
 	return f
+}
+
+func titleIt(s string) string {
+	titleCaser := cases.Title(language.English)
+	return titleCaser.String(s)
 }
 
 // exportToCSV exports results to a CSV file
@@ -672,28 +692,28 @@ func exportToCSV(filename string, results []Result, price float64) error {
 	defer writer.Flush()
 
 	// Write header
-	header := []string{"Price per Litre (p)", "Litres", "Cost (£)", "Litres is Palindrome", "Type"}
+	header := []string{"Price per " + titleIt(volumeName) + " (p)", titleIt(volumeName) + "s", "Cost (" + currencyName + ")", titleIt(volumeName) + "s is Palindrome", "Type"}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
 	}
 
 	// Write data
 	for _, result := range results {
-		litresStr := fmt.Sprintf("%.2f", result.Litres)
-		if result.Litres == math.Floor(result.Litres) {
-			litresStr = fmt.Sprintf("%.0f", result.Litres)
+		volumeStr := fmt.Sprintf("%.2f", result.Volume)
+		if result.Volume == math.Floor(result.Volume) {
+			volumeStr = fmt.Sprintf("%.0f", result.Volume)
 		}
 
-		litresPalindrome := "No"
-		if result.LitresIsPalindrome {
-			litresPalindrome = "Yes"
+		volumePalindrome := "No"
+		if result.VolumeIsPalindrome {
+			volumePalindrome = "Yes"
 		}
 
 		row := []string{
 			fmt.Sprintf("%.1f", price),
-			litresStr,
+			volumeStr,
 			result.CostPounds,
-			litresPalindrome,
+			volumePalindrome,
 			result.Type,
 		}
 
@@ -717,7 +737,7 @@ func exportBatchToCSV(filename string, batchResults map[float64][]Result, prices
 	defer writer.Flush()
 
 	// Write header
-	header := []string{"Price per Litre (p)", "Litres", "Cost (£)", "Litres is Palindrome", "Type"}
+	header := []string{"Price per " + titleIt(volumeName) + " (p)", titleIt(volumeName) + "s", "Cost (" + currencyName + ")", titleIt(volumeName) + "s is Palindrome", "Type"}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
 	}
@@ -726,21 +746,21 @@ func exportBatchToCSV(filename string, batchResults map[float64][]Result, prices
 	for _, price := range prices {
 		results := batchResults[price]
 		for _, result := range results {
-			litresStr := fmt.Sprintf("%.2f", result.Litres)
-			if result.Litres == math.Floor(result.Litres) {
-				litresStr = fmt.Sprintf("%.0f", result.Litres)
+			volumeStr := fmt.Sprintf("%.2f", result.Volume)
+			if result.Volume == math.Floor(result.Volume) {
+				volumeStr = fmt.Sprintf("%.0f", result.Volume)
 			}
 
-			litresPalindrome := "No"
-			if result.LitresIsPalindrome {
-				litresPalindrome = "Yes"
+			volumePalindrome := "No"
+			if result.VolumeIsPalindrome {
+				volumePalindrome = "Yes"
 			}
 
 			row := []string{
 				fmt.Sprintf("%.1f", price),
-				litresStr,
+				volumeStr,
 				result.CostPounds,
-				litresPalindrome,
+				volumePalindrome,
 				result.Type,
 			}
 
