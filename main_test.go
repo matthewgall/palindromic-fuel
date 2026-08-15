@@ -226,16 +226,16 @@ func TestGetPalindromicPencesInRange(t *testing.T) {
 func TestFindPalindromicFuelCosts(t *testing.T) {
 	tests := []struct {
 		name           string
-		pricePerLitre  float64
-		maxLitres      int
+		pricePerVolume float64
+		maxVolume      int
 		expectedCount  int // check count since full results would be long
 		checkSpecific  bool
 		specificResult *Result
 	}{
 		{"standard price", 128.9, 100, 4, true, &Result{
-			Litres:             25.0,
+			Volume:             25.0,
 			CostPounds:         "32.23",
-			LitresIsPalindrome: false, // 25 is not a palindrome
+			VolumeIsPalindrome: false, // 25 is not a palindrome
 			Type:               "whole",
 		}},
 		{"zero price", 0, 10, 0, false, nil},
@@ -251,18 +251,18 @@ func TestFindPalindromicFuelCosts(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results := FindPalindromicFuelCosts(tt.pricePerLitre, tt.maxLitres, 0.01)
+			results := FindPalindromicFuelCosts(tt.pricePerVolume, tt.maxVolume, 0.01)
 			if len(results) != tt.expectedCount {
 				t.Errorf("FindPalindromicFuelCosts(%f, %d) returned %d results, want %d",
-					tt.pricePerLitre, tt.maxLitres, len(results), tt.expectedCount)
+					tt.pricePerVolume, tt.maxVolume, len(results), tt.expectedCount)
 			}
 
 			if tt.checkSpecific && tt.specificResult != nil {
 				found := false
 				for _, result := range results {
-					if result.Litres == tt.specificResult.Litres &&
+					if result.Volume == tt.specificResult.Volume &&
 						result.CostPounds == tt.specificResult.CostPounds &&
-						result.LitresIsPalindrome == tt.specificResult.LitresIsPalindrome &&
+						result.VolumeIsPalindrome == tt.specificResult.VolumeIsPalindrome &&
 						result.Type == tt.specificResult.Type {
 						found = true
 						break
@@ -270,7 +270,7 @@ func TestFindPalindromicFuelCosts(t *testing.T) {
 				}
 				if !found {
 					t.Errorf("FindPalindromicFuelCosts(%f, %d) did not contain expected result: %+v",
-						tt.pricePerLitre, tt.maxLitres, tt.specificResult)
+						tt.pricePerVolume, tt.maxVolume, tt.specificResult)
 				}
 			}
 		})
@@ -280,8 +280,8 @@ func TestFindPalindromicFuelCosts(t *testing.T) {
 func TestFindNearestPalindromicCost(t *testing.T) {
 	tests := []struct {
 		name          string
-		pricePerLitre float64
-		targetLitres  float64
+		pricePerVolume float64
+		targetVolume  float64
 		searchRadius  int
 		expectResult  bool
 	}{
@@ -292,13 +292,13 @@ func TestFindNearestPalindromicCost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := FindNearestPalindromicCost(tt.pricePerLitre, tt.targetLitres, tt.searchRadius, 0.01)
+			result := FindNearestPalindromicCost(tt.pricePerVolume, tt.targetVolume, tt.searchRadius, 0.01)
 			if tt.expectResult && result == nil {
 				t.Errorf("FindNearestPalindromicCost(%f, %f, %d) expected result but got nil",
-					tt.pricePerLitre, tt.targetLitres, tt.searchRadius)
+					tt.pricePerVolume, tt.targetVolume, tt.searchRadius)
 			} else if !tt.expectResult && result != nil {
 				t.Errorf("FindNearestPalindromicCost(%f, %f, %d) expected nil but got result",
-					tt.pricePerLitre, tt.targetLitres, tt.searchRadius)
+					tt.pricePerVolume, tt.targetVolume, tt.searchRadius)
 			}
 		})
 	}
@@ -307,7 +307,7 @@ func TestFindNearestPalindromicCost(t *testing.T) {
 func TestFindPalindromicCostForTarget(t *testing.T) {
 	tests := []struct {
 		name              string
-		pricePerLitre     float64
+		pricePerVolume    float64
 		targetPounds      float64
 		searchRadiusPence int
 		expectedCount     int
@@ -320,10 +320,10 @@ func TestFindPalindromicCostForTarget(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results := FindPalindromicCostForTarget(tt.pricePerLitre, tt.targetPounds, tt.searchRadiusPence, 0.01)
+			results := FindPalindromicCostForTarget(tt.pricePerVolume, tt.targetPounds, tt.searchRadiusPence, 0.01)
 			if len(results) != tt.expectedCount {
 				t.Errorf("FindPalindromicCostForTarget(%f, %f, %d) returned %d results, want %d",
-					tt.pricePerLitre, tt.targetPounds, tt.searchRadiusPence, len(results), tt.expectedCount)
+					tt.pricePerVolume, tt.targetPounds, tt.searchRadiusPence, len(results), tt.expectedCount)
 			}
 		})
 	}
@@ -333,7 +333,7 @@ func TestBatchFindPalindromicCosts(t *testing.T) {
 	tests := []struct {
 		name         string
 		prices       []float64
-		maxLitres    int
+		maxVolume    int
 		expectedKeys int
 	}{
 		{"single price", []float64{128.9}, 100, 1},
@@ -343,10 +343,10 @@ func TestBatchFindPalindromicCosts(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results := BatchFindPalindromicCosts(tt.prices, tt.maxLitres, 0.01)
+			results := BatchFindPalindromicCosts(tt.prices, tt.maxVolume, 0.01)
 			if len(results) != tt.expectedKeys {
 				t.Errorf("BatchFindPalindromicCosts(%v, %d) returned %d results, want %d keys",
-					tt.prices, tt.maxLitres, len(results), tt.expectedKeys)
+					tt.prices, tt.maxVolume, len(results), tt.expectedKeys)
 			}
 
 			// Verify each price has results
@@ -365,27 +365,27 @@ func TestPrintResult(t *testing.T) {
 		result Result
 	}{
 		{"whole number litres", Result{
-			Litres:             25.0,
+			Volume:             25.0,
 			CostPounds:         "32.23",
-			LitresIsPalindrome: false,
+			VolumeIsPalindrome: false,
 			Type:               "whole",
 		}},
 		{"palindromic whole litres", Result{
-			Litres:             121.0,
+			Volume:             121.0,
 			CostPounds:         "50.05",
-			LitresIsPalindrome: true,
+			VolumeIsPalindrome: true,
 			Type:               "whole",
 		}},
 		{"palindromic decimal litres", Result{
-			Litres:             38.83,
+			Volume:             38.83,
 			CostPounds:         "50.05",
-			LitresIsPalindrome: true,
+			VolumeIsPalindrome: true,
 			Type:               "palindromic_decimal",
 		}},
 		{"decimal litres", Result{
-			Litres:             15.75,
+			Volume:             15.75,
 			CostPounds:         "20.31",
-			LitresIsPalindrome: false,
+			VolumeIsPalindrome: false,
 			Type:               "whole",
 		}},
 	}
@@ -400,8 +400,8 @@ func TestPrintResult(t *testing.T) {
 
 func TestPrintResults(t *testing.T) {
 	results := []Result{
-		{Litres: 25.0, CostPounds: "32.23", LitresIsPalindrome: false, Type: "whole"},
-		{Litres: 38.83, CostPounds: "50.05", LitresIsPalindrome: true, Type: "palindromic_decimal"},
+		{Volume: 25.0, CostPounds: "32.23", VolumeIsPalindrome: false, Type: "whole"},
+		{Volume: 38.83, CostPounds: "50.05", VolumeIsPalindrome: true, Type: "palindromic_decimal"},
 	}
 
 	// Test that it doesn't panic
@@ -410,8 +410,8 @@ func TestPrintResults(t *testing.T) {
 
 func TestExportToCSV(t *testing.T) {
 	results := []Result{
-		{Litres: 25.0, CostPounds: "32.23", LitresIsPalindrome: false, Type: "whole"},
-		{Litres: 38.83, CostPounds: "50.05", LitresIsPalindrome: true, Type: "palindromic_decimal"},
+		{Volume: 25.0, CostPounds: "32.23", VolumeIsPalindrome: false, Type: "whole"},
+		{Volume: 38.83, CostPounds: "50.05", VolumeIsPalindrome: true, Type: "palindromic_decimal"},
 	}
 
 	// Test export to temporary file
@@ -479,7 +479,7 @@ func TestHandleAPI(t *testing.T) {
 
 func TestHandleAPI_POST(t *testing.T) {
 	// Test POST request
-	reqBody := CalculateRequest{PricePerLitre: 128.9, MaxLitres: 50}
+	reqBody := CalculateRequest{PricePerVolume: 128.9, MaxVolume: 50}
 	jsonBody, _ := json.Marshal(reqBody)
 
 	req, err := http.NewRequest("POST", "/api/calculate", bytes.NewBuffer(jsonBody))
@@ -534,10 +534,10 @@ func TestHandleAPI_InvalidInput(t *testing.T) {
 func TestExportBatchToCSV(t *testing.T) {
 	batchResults := map[float64][]Result{
 		128.9: {
-			{Litres: 25.0, CostPounds: "32.23", LitresIsPalindrome: false, Type: "whole"},
+			{Volume: 25.0, CostPounds: "32.23", VolumeIsPalindrome: false, Type: "whole"},
 		},
 		135.7: {
-			{Litres: 20.0, CostPounds: "27.14", LitresIsPalindrome: false, Type: "whole"},
+			{Volume: 20.0, CostPounds: "27.14", VolumeIsPalindrome: false, Type: "whole"},
 		},
 	}
 	prices := []float64{128.9, 135.7}
@@ -604,9 +604,9 @@ func TestExportToCSVEdgeCases(t *testing.T) {
 
 	// Test with various result types
 	diverseResults := []Result{
-		{Litres: 25.0, CostPounds: "32.23", LitresIsPalindrome: true, Type: "whole"},                 // integer litres, palindromic
-		{Litres: 38.83, CostPounds: "50.05", LitresIsPalindrome: false, Type: "palindromic_decimal"}, // decimal, not palindromic litres
-		{Litres: 1.5, CostPounds: "1.93", LitresIsPalindrome: false, Type: "whole"},                  // decimal litres
+		{Volume: 25.0, CostPounds: "32.23", VolumeIsPalindrome: true, Type: "whole"},                 // integer litres, palindromic
+		{Volume: 38.83, CostPounds: "50.05", VolumeIsPalindrome: false, Type: "palindromic_decimal"}, // decimal, not palindromic litres
+		{Volume: 1.5, CostPounds: "1.93", VolumeIsPalindrome: false, Type: "whole"},                  // decimal litres
 	}
 
 	tmpfile2, err := os.CreateTemp("", "test_diverse_*.csv")
